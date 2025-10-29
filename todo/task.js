@@ -1,80 +1,51 @@
-
-(function () {
+(() => {
   'use strict';
 
-  var input  = document.querySelector('.tasks__input');
-  var list   = document.querySelector('.tasks__list');
-  var addBtn = document.querySelector('.tasks__add');
+  const input  = document.querySelector('.tasks__input');
+  const list   = document.querySelector('.tasks__list');
+  const addBtn = document.querySelector('.tasks__add');
 
-  if (!input || !list) return;
+  if (!input || !list || !addBtn) return;
 
-  function save() {
-    var titles = [];
-    var nodes = list.querySelectorAll('.task__title');
-    for (var i = 0; i < nodes.length; i++) {
-      titles.push(nodes[i].textContent.trim());
-    }
+  const getStored = () => JSON.parse(localStorage.getItem('tasks')) || [];
+  const save = () => {
+    const titles = [...list.querySelectorAll('.task__title')].map(n => n.textContent.trim());
     localStorage.setItem('tasks', JSON.stringify(titles));
-  }
+  };
 
-  function attachRemoveHandler(removeLink, taskEl) {
-    removeLink.addEventListener('click', function (e) {
+  const attachRemoveHandler = (taskEl) => {
+    const removeLink = taskEl.querySelector('.task__remove');
+    if (!removeLink) return;
+    removeLink.addEventListener('click', (e) => {
       e.preventDefault();
-      if (taskEl && taskEl.parentNode) {
-        taskEl.parentNode.removeChild(taskEl);
-        save();
-      }
-    });
-  }
+      taskEl.remove();
+      save();
+    }, { once: false });
+  };
 
-  function createTask(text) {
-    var task = document.createElement('div');
-    task.className = 'task';
-
-    var title = document.createElement('div');
-    title.className = 'task__title';
-    title.textContent = text;
-
-    var rm = document.createElement('a');
-    rm.href = '#';
-    rm.className = 'task__remove';
-    rm.innerHTML = '&times;';
-
-    task.appendChild(title);
-    task.appendChild(rm);
-    attachRemoveHandler(rm, task);
-
-    return task;
-  }
-
-  function addTaskFromInput() {
-    var text = (input.value || '').trim();
+  const insertTask = (title) => {
+    const text = String(title || '').trim();
     if (!text) return;
-    var el = createTask(text);
-    list.appendChild(el);
-    input.value = '';
+
+    list.insertAdjacentHTML('beforeend', `
+      <div class="task">
+        <div class="task__title">${text}</div>
+        <a href="#" class="task__remove">&times;</a>
+      </div>
+    `);
+
+    const taskEl = list.lastElementChild;
+    attachRemoveHandler(taskEl);
     save();
-  }
+  };
 
-  try {
-    var stored = JSON.parse(localStorage.getItem('tasks') || '[]');
-    for (var i = 0; i < stored.length; i++) {
-      var el = createTask(stored[i]);
-      list.appendChild(el);
-    }
-  } catch (e) {}
+  const initial = getStored();
+  initial.forEach(insertTask);
 
-  if (addBtn) {
-    addBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      addTaskFromInput();
-    });
-  }
-
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.keyCode === 13) {
-      e.preventDefault();
-      addTaskFromInput();
-    }
+  addBtn.addEventListener('click', (e) => {
+    e.preventDefault();          
+    insertTask(input.value);
+    input.value = '';
+    input.focus();
   });
 })();
